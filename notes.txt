@@ -1,0 +1,60 @@
+							  Reaally Poor Server
+
+							   By Peter Antoine.
+
+					 Release under the Artistic Licence II.
+					   Copyright 2010 (c) Peter Antoine.
+
+						 email: rshs@peterantoine.me.uk
+
+
+
+Introduction.
+-------------
+
+This is a very poor implementation of a HTTP/HTTPS server.
+
+The only point of this server is for me to code one from scratch. It started life a simple piece of code that
+I needed to help test a STB implementation of a HTTP client and keeps getting more functionality. (well it 
+actually started life a Gopher Server - but that was VERY long ago).
+
+Now it has grown into a HTTPS server as I do not (did not) know the magics that powered the modern internet and
+I am getting involved with STB video delivery and all the nonsense so some knowledge of how this stuff all hangs
+together might be a good idea. AS this is a more and more important part the home entertainment systems.
+
+Security.
+---------
+
+None. Neut, Neavo!
+
+There is a complaint TLS v1.2 stack as part of this server. If you use it for anything of worth you probably need
+sectioning. It has passed some basic testing, using any test scripts/data sets that are available. So it will
+generate the correct output for the correct input. What it will do for the more important INCORRECT input is
+anyone's guess. I am not a security programmer I have not tested for buffer overruns and any of the other security
+problems and common exploits.
+
+I think I am reasonably good at what I do, but this is a mostly free-time project that is just being coded to help
+me know more. 
+
+If anyone spots any security flaws in the program, please let me know.
+
+Building
+--------
+
+Sorry for now it's a MS product, I do thing the code will compile X-platform (I generally write X-Platform C - pre C99)
+so it should work (with the exception of the Windows start up rubbish) - easily replaced. But, there is not point 
+making the project more complicated until it gets a bit further on, and I need to play with *nix problems with this
+stuff.
+
+To Build:
+
+nmake
+
+Done!
+
+
+Using it
+--------
+
+
+

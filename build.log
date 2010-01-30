@@ -1,0 +1,7 @@
+	cl  /c handle_tls_connection.c 
+handle_tls_connection.c
+handle_tls_connection.c(191) : warning C4090: 'function' : different 'const' qualifiers
+	link /DEBUG /out:server.exe decode_headers.obj handle_connection.obj server.obj tables.obj base64.obj headers.obj utilities.obj DumpHexMem.obj handle_tls_connection.obj cipher_table.obj tls_messages.obj ws2_32.lib
+Microsoft (R) Incremental Linker Version 9.00.30729.01
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
