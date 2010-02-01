@@ -125,6 +125,7 @@ void	main(int argc,char *argv[])
 	int			key_file = 0;
 	int			cert_file = 0;
 	int			pem_format = 0;
+	int			port_number = 0;
 	int			connection_number = 0;
 	int			writable,err,size,count,in_size;
 	int			trans_left,sleep_count;
@@ -160,6 +161,20 @@ void	main(int argc,char *argv[])
 					case 's': secure = 1; 	break;
 					case 'p': pem_format = 1; break;
 					case 'b': pem_format = 0; break;	/* I know pointless but makes the command line more readable - no unknown magic */
+					
+					case 'a':
+							if (argv[start][2] == '\0')
+							{
+								if (argv[start+1][0] != '-' && argv[start+1][0] != '\0')
+									port_number = atoi(argv[start+1]);
+								else
+									failed = 1;
+								
+								start++;
+							}else{
+								port_number = atoi(&argv[start][2]);
+							}
+							break;
 
 
 					/* the certificate file */
@@ -215,6 +230,7 @@ void	main(int argc,char *argv[])
 	{
 		printf("Failed bad parameter\n");
 		printf("Usage:\n");
+		printf("      -a                   - Port number for the server to bind to\n");
 		printf("      -s                   - Secure (needs a certificate file)\n");
 		printf("      -b                   - Load security files in Raw BER format (default)\n");
 		printf("      -p                   - Load security files in PEM format\n");
@@ -290,7 +306,9 @@ void	main(int argc,char *argv[])
 		 * we will connect to the address (to the local IP address: port 712)
 		 */
 		sin_listen.sin_family = AF_INET;
-		if (secure)
+		if (port_number != 0)
+			sin_listen.sin_port = htons(port_number);
+		else if (secure)
 			sin_listen.sin_port   = htons(HTTPS_PORT);
 		else
 			sin_listen.sin_port   = htons(HTTP_PORT);
