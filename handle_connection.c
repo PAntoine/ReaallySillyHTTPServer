@@ -46,6 +46,7 @@ extern int error_start_size;
 extern int error_middle_size;
 extern int error_end_size;
 
+extern int use_digest;
 
 /*------------------------------------------------------------*
  * connection data connections
@@ -504,6 +505,62 @@ int		CheckRequestStatus(char* uri, unsigned int connection, int* file,char* data
 	return status;
 }
 
+
+/*---  FUNCTION  ----------------------------------------------------------------------*
+ *         Name:  AddAuthenticationHeader
+ *  Description:  This function will build a Digest Header.
+ *-------------------------------------------------------------------------------------*/
+int AddAuthenticationHeader ( unsigned char* buffer,unsigned char* realm_name, unsigned int length )
+{
+	int	result = 0;
+
+	memcpy(buffer,headers_table[HST_WWW_AUTHENTICATE].name,headers_table[HST_WWW_AUTHENTICATE].length);
+	result = headers_table[HST_WWW_AUTHENTICATE].length;
+
+	memcpy(&buffer[result],": Digest ",sizeof(": Digest ") - 1);
+	result += sizeof(": Digest ") - 1;
+
+
+	/* realm */
+	memcpy(&buffer[result],"realm=\"",sizeof("realm=\"") - 1);
+	result += sizeof("realm=\"") - 1;
+
+	memcpy(&buffer[result],realm_name,length);
+	result += length;
+	
+	buffer[result++] = '\"';
+	buffer[result++] = ',';
+
+	/* qop */
+	memcpy(&buffer[result],"qop=\"auth\",",sizeof("qop=\"auth\",") - 1);
+	result += sizeof("qop=\"auth\",") - 1;
+
+	/* nonce */
+	memcpy(&buffer[result],"nonce=\"",sizeof("nonce=\"") - 1);
+	result += sizeof("nonce=\"") - 1;
+
+	memcpy(&buffer[result],realm_name,length);
+	result += length;
+	
+	buffer[result++] = '\"';
+	buffer[result++] = ',';
+
+	/* opaque */
+	memcpy(&buffer[result],"opaque=\"",sizeof("opaque=\"") - 1);
+	result += sizeof("opaque=\"") - 1;
+
+	memcpy(&buffer[result],realm_name,length);
+	result += length;
+	
+	buffer[result++] = '\"';
+
+	/* header end */
+	buffer[result++] = 0x0d;
+	buffer[result++] = 0x0a;
+
+	return result;
+}
+
 /*---  FUNCTION  ----------------------------------------------------------------------*
  *         Name:  SendResponse
  *  Description:  The function handles the response to the uri request.
@@ -550,7 +607,14 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 	
 	if (status == SC_401_UNAUTHORIZED)
 	{
-		total += AddHeader(&send_buffer[connection][total],HST_WWW_AUTHENTICATE,"Basic realm=home",sizeof("Basic realm=home"));
+		if (use_digest)
+		{
+			total += AddAuthenticationHeader(&send_buffer[connection][total],"home",sizeof("home")-1);
+		}
+		else
+		{
+			total += AddHeader(&send_buffer[connection][total],HST_WWW_AUTHENTICATE,"Basic realm=home",sizeof("Basic realm=home"));
+		}
 	}
 	else if (status >= SC_300_MULTIPLE_CHOICES && status <= SC_307_TEMPORARY_REDIRECT)
 	{
@@ -560,6 +624,8 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 	/* header end */
 	send_buffer[connection][total++] = 0x0d;
 	send_buffer[connection][total++] = 0x0a;
+
+	DumpHexMem(send_buffer[connection],total);
 
 	send(details[connection].socket,send_buffer[connection],total,0);
 
