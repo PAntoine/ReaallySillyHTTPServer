@@ -54,6 +54,7 @@ unsigned char	cert_buffer[MAX_CERT_SIZE];
 unsigned int	key_size;
 unsigned char	key_buffer[MAX_KEY_SIZE];
 
+int use_digest = 1;
 
 void	handle_connection(unsigned int connection);
 void	handle_tls_connection(unsigned int connection);
