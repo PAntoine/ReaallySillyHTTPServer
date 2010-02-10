@@ -596,8 +596,9 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 	send_buffer[connection][total++] = 0x0d;
 	send_buffer[connection][total++] = 0x0a;
 
+
 	/* add the server name!! reaally important!! */
-	total += AddHeader(&send_buffer[connection][total],HST_SERVER,SERVER_NAME,sizeof(SERVER_NAME));
+	total += AddHeader(&send_buffer[connection][total],HST_SERVER,SERVER_NAME,sizeof(SERVER_NAME)-1);
 
 	/* add the content type header */
 	total += AddHeader(&send_buffer[connection][total],HST_CONTENT_TYPE,mime_lookup[type].mime_name,mime_lookup[type].length);

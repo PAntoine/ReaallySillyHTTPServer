@@ -23,6 +23,9 @@
 
 #define	DELIMITER_CRLF	'\n'
 #define	DELIMITER_COLON	':'
+#define	DELIMITER_EQUALS '='
+#define	DELIMITER_COMMA	','
+#define	DELIMITER_DOUBLE_QUOTE	'\"'
 
 #define MAX_CERT_SIZE	(2 * 1024)
 #define MAX_KEY_SIZE	(1 * 1024)
@@ -361,6 +364,19 @@ typedef	struct
 
 typedef struct
 {
+	unsigned char	user_name[32];		/* the user name used to login */
+	unsigned char	nonce[64];			/* the nonce value */
+	unsigned char	cnonce[64];			/* the cnonce value */
+	unsigned char	response[64];		/* the response value */
+	unsigned char	opaque[64];			/* the opaque value */
+	unsigned char	realm[64];			/* the realm value */
+	unsigned long	nonce_count;
+	unsigned char	request_digets[16];	/* the digest for the request */
+
+} AUTHORISATION;
+
+typedef struct
+{
 	unsigned int	connection;
 	SOCKET			socket;
 	char			in_use;
@@ -368,6 +384,7 @@ typedef struct
 	char			user[32];
 	char			passwd[32];
 	unsigned int	retry_count;
+	AUTHORISATION	authorisation;
 	TLS_SECURITY	sec_details;
 } CONNECTION_DETAILS;
 

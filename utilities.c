@@ -20,6 +20,60 @@ extern	char	connection_buffer[MAX_CONNECTIONS][BUFFER_SIZE];
 extern	int		buff_pos[MAX_CONNECTIONS];
 extern	int		data_read[MAX_CONNECTIONS];
 
+
+/*---  FUNCTION  ----------------------------------------------------------------------*
+ *         Name:  GetField
+ *  Description:  This function will return a field from a token. The fields are 
+ *                delimited by either a CRLF or the delimeter passed in.
+ *-------------------------------------------------------------------------------------*/
+int GetField(unsigned char* buffer, unsigned int buffer_size, unsigned char* input_buffer, unsigned int input_size, char delimiter)
+{
+	int	bytes_used = 0;
+	int lf_found = 0;
+	int offset = 0;
+	int found = 0;
+
+	/* remove leading white space */
+	while (input_buffer[bytes_used] == ' ')
+		bytes_used++;
+
+	if ((input_buffer[bytes_used] == DELIMITER_DOUBLE_QUOTE) && (delimiter == DELIMITER_DOUBLE_QUOTE))
+	{
+		bytes_used++;
+	}
+
+	do
+	{
+		switch(input_buffer[bytes_used])
+		{
+			case '\0':	found = 1;
+						buffer[offset++] = '\0';
+						break;
+
+			default:
+					if (input_buffer[bytes_used] == delimiter)
+					{
+						found = 1;
+						buffer[offset++] = '\0';
+					}
+					else
+					{
+						buffer[offset++] = input_buffer[bytes_used];
+						lf_found = 0;
+					}
+					break;
+		}
+		bytes_used++;
+	}
+	while(!found && offset < buffer_size && bytes_used < input_size);
+
+	if (!found)
+		return 0;
+	else
+		return bytes_used;
+}
+
+
 /*------------------------------------------------------------*
  * Get Token
  *

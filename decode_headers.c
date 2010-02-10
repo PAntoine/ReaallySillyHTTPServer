@@ -32,6 +32,167 @@ extern const	char	*response_header[];
 extern const	char	*entity_header[];
 extern const	char	*status_code[][2];
 
+
+/*-----------------------------------------------------------------------------*
+ *  Authorise field names
+ *-----------------------------------------------------------------------------*/
+
+static const char*	auth_names[] =
+{
+	"username",
+	"realm",
+	"nonce",
+	"uri",
+	"response",
+	"opaque",
+	"qop",
+	"nc",
+	"cnonce",
+	"algorithm"
+};
+
+enum
+{
+	AFN_USERNAME,
+	AFN_REALM,
+	AFN_NONCE,
+	AFN_URI,
+	AFN_RESPONSE,
+	AFN_OPAQUE,
+	AFN_QOP,
+	AFN_NC,
+	AFN_CNONCE,
+	AFN_ALGORITHM,
+	AFN_NUMBER_OF_AUTH_FIELDS
+};
+
+/*---  FUNCTION  ----------------------------------------------------------------------*
+ *         Name:  DecodeAuthentication
+ *  Description:  THis function will decode the Authentication headers and pack them
+ *                into the authentication structure for the connection.
+ *
+ *                It expects that the header buffer is valid and ends with a 0x0a 0x0d.
+ *-------------------------------------------------------------------------------------*/
+int DecodeAuthentication ( unsigned int connection , unsigned char* buffer, unsigned int buffer_size )
+{
+	int				count;
+	int				index;
+	int				result = 0;
+	int				offset = 0;
+	int				finished = 0;
+	unsigned int	name_length;
+	unsigned int	value_length;
+	unsigned char	output[255];
+	unsigned char	field_name[32];
+	unsigned char	field_value[80];
+	AUTHORISATION	*auth;
+
+	name_length = GetField(field_name,32,&buffer[offset],buffer_size-offset,' ');
+	offset += name_length;
+
+	printf("Auth type = %s\n",field_name);
+
+	if (strcmp(field_name,"Basic") == 0)
+	{
+		/* basic coding */
+		decode_base64(output,255,&buffer[offset],buffer_size-offset);
+		
+		for(count=0;count<32;count++)
+		{
+			if (output[count] == ':')
+			{
+				details[connection].user[count] = '\0';
+				break;
+			}
+				
+			details[connection].user[count] = output[count];
+		}
+
+		for(count++;count<32;count++)
+		{
+			if (output[count] == ':')
+			{
+				details[connection].passwd[count] = '\0';
+				break;
+			}
+				
+			details[connection].passwd[count] = output[count];
+		}
+	}
+	else if (strcmp(field_name,"Digest") == 0)
+	{
+		auth = &details[connection].authorisation;
+
+		/* Digest authentication */
+		while (offset < buffer_size && !finished)
+		{
+			name_length = GetField(field_name,32,&buffer[offset],buffer_size-offset,DELIMITER_EQUALS);
+			value_length = GetField(field_value,80,&buffer[offset+name_length],buffer_size-name_length,DELIMITER_COMMA);
+
+			offset += value_length + name_length;
+
+			if (name_length > 0 && value_length > 0)
+			{
+				/* find the fields */
+				for (count=0;count<AFN_NUMBER_OF_AUTH_FIELDS;count++)
+				{
+					if (strcmp(field_name,auth_names[count]) == 0)
+					{
+						switch(count)
+						{
+							case AFN_USERNAME:
+								GetField(auth->user_name,32,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_REALM:
+								GetField(auth->realm,64,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_NONCE:
+								GetField(auth->nonce,64,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_URI:
+//								GetField(auth->uri,32,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_RESPONSE:
+								GetField(auth->response,64,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_OPAQUE:
+								GetField(auth->opaque,64,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_QOP:
+//								GetField(auth->qop,32,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_NC:
+//								GetField(auth->user_name,32,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_CNONCE:
+								GetField(auth->cnonce,64,field_value,value_length,DELIMITER_DOUBLE_QUOTE);
+								break;
+							case AFN_ALGORITHM:
+//								GetField(auth->user_name,32,field_value,value_length,DELIMITER_COMMA);
+								break;
+						}
+
+						break;
+					}
+				}
+			}
+			else
+			{
+				/* it failed */
+				break;
+			}
+		}
+
+		DumpHexMem(auth,sizeof(AUTHORISATION));
+
+	}
+
+	/* TODO: Work out the result here */
+
+	return result;
+}
+
+
 /*------------------------------------------------------------*
  * This function will decode the request headers.
  *------------------------------------------------------------*/
@@ -61,39 +222,15 @@ unsigned int	decode_request_headers(unsigned int connection)
 		else
 		{
 			size = GetToken(connection,details[connection].socket,header_field,255,&delimiter);
-
 			token = headers_check_word(header_name);
-
+			
 			if (token != -1)
 				headers_found = 1;
 
 			if (token == HST_AUTHORIZATION)
 			{
-				decode_base64(output,255,&header_field[7],size);
-				
-				for(count=0;count<32;count++)
-				{
-					if (output[count] == ':')
-					{
-						details[connection].user[count] = '\0';
-						break;
-					}
-						
-					details[connection].user[count] = output[count];
-				}
+				DecodeAuthentication(connection,header_field,size);
 
-				for(count++;count<32;count++)
-				{
-					if (output[count] == ':')
-					{
-						details[connection].passwd[count] = '\0';
-						break;
-					}
-						
-					details[connection].passwd[count] = output[count];
-				}
-
-				printf("Auth: user-%s passwd: %s\n",details[connection].user,details[connection].passwd);
 			}
 		}
 
