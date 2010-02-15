@@ -1,4 +1,6 @@
-#include sheeva_tools.mak
+ifdef SHEEVA_BUILD
+include sheeva_tools.mak
+endif
 
 HEADER_FILES = $(wildcard *.h)
 SOURCE_FILES = $(wildcard *.c)
@@ -13,3 +15,7 @@ server: $(OBJECT_FILES)
 .c.o: $(OBJECT_FILES) $(HEADER_FILES)
 	@$(CC) $(CFLAGS) -c $< -o $(@) -I include $(INCDIRS)
 
+clean:
+	-@$(RM)	*.o
+	-@$(RM) *.obj
+	-@$(RM) server
