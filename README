@@ -41,14 +41,13 @@ If anyone spots any security flaws in the program, please let me know.
 Building
 --------
 
-Sorry for now it's a MS product, I do thing the code will compile X-platform (I generally write X-Platform C - pre C99)
-so it should work (with the exception of the Windows start up rubbish) - easily replaced. But, there is not point 
-making the project more complicated until it gets a bit further on, and I need to play with *nix problems with this
-stuff.
+Ok. For *nix users do the following:
 
-To Build:
+make
 
-nmake
+For Windows users do:
+
+nmake -f makevc
 
 Done!
 
