@@ -15,8 +15,8 @@
 #include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <string.h>
 #include <stdlib.h>
-#include <winsock2.h>
 
 #include "headers.h"
 #include "http_server.h"

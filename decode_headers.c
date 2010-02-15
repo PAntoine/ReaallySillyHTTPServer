@@ -10,7 +10,7 @@
  *
  *********************************************************************************/
 
-#include <winsock2.h>
+#include <stdio.h>
 #include "headers.h"
 #include "http_server.h"
 

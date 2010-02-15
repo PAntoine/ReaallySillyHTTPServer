@@ -19,9 +19,11 @@
  *                        Released under the Artistic License.
  ***************************************************************************************/
 
+#include <stdio.h>
+#include <memory.h>
+#include <stdlib.h>
 #include "X509_encoding.h"
 #include "ASN1_decoder.h"
-#include <stdio.h>
 
 /*-----------------------------------------------------------------------------*
  *  X509 Constant Strings

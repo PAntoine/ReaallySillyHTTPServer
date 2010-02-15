@@ -13,8 +13,45 @@
 #ifndef	__HTTP_SERVER_H__
 #define	__HTTP_SERVER_H__
 
-#include <winsock2.h>
 
+/*-----------------------------------------------------------------------------*
+ *  Cross platfrom nonsense
+ *-----------------------------------------------------------------------------*/
+#ifdef _WIN32
+#	include <winsock2.h>
+#else
+#	include <errno.h>
+#	include <sys/socket.h>
+#	include <netinet/in.h>
+#	include <pthread.h>
+
+#	define INVALID_SOCKET		(-1)
+#	define SOCKET_ERROR			(-1)
+#	define SOCKET				int
+#	define O_BINARY				(0)
+#	define SOCKADDR_IN			struct sockaddr_in
+#	define LPSOCKADDR			struct sockaddr*
+#	define WSAGetLastError()	errno
+#	define WSACleanup()
+#	define HANDLE				pthread_t*
+#	define closesocket			close
+
+typedef void* (*LPTHREAD_START_ROUTINE)(void*);
+
+pthread_t*	CreateThread(	unsigned int* 			not_used,
+							unsigned int			stack_size,
+							LPTHREAD_START_ROUTINE 	function,
+							void*					parameters,
+							unsigned int			flags,
+							unsigned int*			thread_id);
+
+
+#endif
+
+
+/*-----------------------------------------------------------------------------*
+ *  General definitions
+ *-----------------------------------------------------------------------------*/
 /* server name and version */
 #define	SERVER_NAME "ReaallyPoorServer/0.1"
 
@@ -415,6 +452,13 @@ typedef struct
 #define	TLS_SHO_VERSION_MINOR	(TLS_HT_DATA_START + 1)
 #define	TLS_SHO_RANDOM			(TLS_HT_DATA_START + 2)
 #define TLS_SHO_SESSION_ID		(TLS_HT_DATA_START + 34)
+
+
+/*-----------------------------------------------------------------------------*
+ *  General Commands
+ *-----------------------------------------------------------------------------*/
+HTTP_COMMANDS	DecodeCommand(unsigned int connection,char* uri);
+MIME_TYPE		GetMimeType(char* uri);
 
 /*-----------------------------------------------------------------------------*
  *  The TLS message functions.

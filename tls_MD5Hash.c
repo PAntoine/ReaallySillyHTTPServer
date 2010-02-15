@@ -33,8 +33,10 @@
  *                        Released under the Artistic License.
  ***************************************************************************************/
 
-#include "http_server.h"
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include "http_server.h"
 
 /*-----------------------------------------------------------------------------*
  * function definitions.
@@ -79,7 +81,7 @@ static	unsigned char	md5_padding[64] = {	0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 											0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 											0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-static	unsigned int	md5_sin_table[65];
+static	unsigned long	md5_sin_table[65];
 
 /*---  FUNCTION  ----------------------------------------------------------------------*
  *         Name:  tls_MD5Setup
@@ -243,7 +245,9 @@ unsigned int*	tls_MD5CopyBlock ( unsigned char* buffer, unsigned int* md5_buffer
 #ifndef	BIG_ENDIAN
 	return (unsigned int*) buffer;
 #else
-	for (int count=0;count<16;count++)
+	int count;
+
+	for (count=0;count<16;count++)
 	{
 		md5_buffer[count] = (((buffer[count*4  ])       |
 							   buffer[count*4+1] << 8)  |

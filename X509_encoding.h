@@ -269,7 +269,7 @@ typedef enum
 										/* The above is true and not true, pkcs does not really mean RSA,
 										 * but only RSA uses this prefix - so kind of stands :) */
 
-} PKCS_1_ID_OBJECTS;
+} PKCS_9_ID_OBJECTS;
 
 
 /*-----------------------------------------------------------------------------*

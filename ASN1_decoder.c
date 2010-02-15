@@ -29,6 +29,8 @@
 
 #include "ASN1_decoder.h"
 #include <time.h>
+#include <stdio.h>
+#include <string.h>
 
 /*---  FUNCTION  ----------------------------------------------------------------------*
  *         Name:  ASN1_DecodeHeader

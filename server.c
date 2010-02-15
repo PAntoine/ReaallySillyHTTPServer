@@ -27,8 +27,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <winsock2.h>
-#include <windows.h>
+#include <string.h>
 
 #include "http_server.h"
 #include "X509_encoding.h"
@@ -123,6 +122,7 @@ void	main(int argc,char *argv[])
 	int			closed = 0;
 	int			secure = 0;
 	int			failed = 0;
+	int			not_used;
 	int			key_file = 0;
 	int			cert_file = 0;
 	int			pem_format = 0;
@@ -134,12 +134,10 @@ void	main(int argc,char *argv[])
 	char		key_filename[256];
 	char		cert_filename[256];
 	float		mbpersec;
-	WORD		wVersionRequested;	
 	fd_set		set_s_out;
 	SOCKET		s_listen,s_in;
 	HANDLE		thread[MAX_CONNECTIONS];
 	clock_t		startclock,endclock;
-	WSADATA 	wsaData;
 	SOCKADDR_IN	sin_in,sin_listen,sin_addr;
 	struct timeval	waittime;
 	RSA_PRIVATE_KEY	key;
@@ -284,18 +282,8 @@ void	main(int argc,char *argv[])
 		status_code_size[count] = strlen(status_code[count]);
 	}
 
-	/* windows nonsense that is needed before you can talk to
-	 * the windows 2 sockets.
-	 */ 
-	wVersionRequested = MAKEWORD( 2, 2 ); 
-	err = WSAStartup( wVersionRequested, &wsaData );
-	
-	if ( err != 0 ) 
-	{	
-		printf("Unable to find the WinSock DLL\n");
-		return;
-	}
-	
+	StartNetworking();
+
 	/* now lets talk to the sockets */
 	s_listen = socket(AF_INET,SOCK_STREAM,0);
 
@@ -329,7 +317,7 @@ void	main(int argc,char *argv[])
 				{
 					printf("Failed to listen to socket\n");
 				}else{
-					s_in = accept(s_listen,(LPSOCKADDR)&sin_in,NULL);
+					s_in = accept(s_listen,(LPSOCKADDR)&sin_in,&not_used);
 
 					if (s_in == INVALID_SOCKET)
 					{
