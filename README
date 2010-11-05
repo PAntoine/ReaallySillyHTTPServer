@@ -25,6 +25,9 @@ together might be a good idea. AS this is a more and more important part the hom
 Security.
 ---------
 
+OK, of you use the -o flag then you will use the standard openssl stack. Otherwise you will get my incomplete
+tls stack. This will be finished one day. :)
+
 None. Neut, Neavo!
 
 There is a complaint TLS v1.2 stack as part of this server. If you use it for anything of worth you probably need

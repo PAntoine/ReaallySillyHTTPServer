@@ -421,6 +421,7 @@ typedef struct
 	char			user[32];
 	char			passwd[32];
 	unsigned int	retry_count;
+	SSL*			ssl_connection;
 	AUTHORISATION	authorisation;
 	TLS_SECURITY	sec_details;
 } CONNECTION_DETAILS;

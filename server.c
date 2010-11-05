@@ -28,10 +28,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/ssl.h>
 
 #include "http_server.h"
 #include "X509_encoding.h"
 #include "RSA_PublicCrypto.h"
+#include "ssl_functions.h"
 
 #define	HTTP_PORT		80
 #define	HTTPS_PORT		443
@@ -39,6 +41,9 @@
 
 /* TODO: DEBUG remove */
 extern void	DumpHexMem(char* memory,unsigned long dumpSize);
+
+unsigned char dummy_message[] = "HTTP/1.1 200 Ok\x0d\x0a""connection:close\x0d\x0a\x0d\x0aHello there\x0d\x0a";
+
 
 
 extern char			*status_code[];
@@ -122,6 +127,7 @@ void	main(int argc,char *argv[])
 	int			closed = 0;
 	int			secure = 0;
 	int			failed = 0;
+	int			open_ssl = 0;
 	int			not_used;
 	int			key_file = 0;
 	int			cert_file = 0;
@@ -138,6 +144,7 @@ void	main(int argc,char *argv[])
 	SOCKET		s_listen,s_in;
 	HANDLE		thread[MAX_CONNECTIONS];
 	clock_t		startclock,endclock;
+	SSL_CTX*	ctx;
 	SOCKADDR_IN	sin_in,sin_listen,sin_addr;
 	struct timeval	waittime;
 	RSA_PRIVATE_KEY	key;
@@ -158,6 +165,7 @@ void	main(int argc,char *argv[])
 				switch(argv[start][1])
 				{
 					case 's': secure = 1; 	break;
+					case 'o': open_ssl = 1; break;
 					case 'p': pem_format = 1; break;
 					case 'b': pem_format = 0; break;	/* I know pointless but makes the command line more readable - no unknown magic */
 					
@@ -192,9 +200,8 @@ void	main(int argc,char *argv[])
 								break;
 
 					/* the key file */
-					case 'k':	if (key_file)
+					case 'k': 	if (key_file)
 									failed = 2;
-
 							  	else if (argv[start][2] != '\0')
 									strncpy(key_filename,&argv[start][2],256);
 
@@ -207,6 +214,7 @@ void	main(int argc,char *argv[])
 								break;
 
 					default:
+
 							failed = 3;
 				}
 
@@ -220,7 +228,7 @@ void	main(int argc,char *argv[])
 		}
 	}
 
-	if ((secure && !(cert_file && key_file)) || (!secure && (cert_file || key_file)))	
+	if (((secure || open_ssl) && !(cert_file && key_file)) || (!(secure || open_ssl) && (cert_file || key_file)))	
 	{
 		failed = 1;
 	}
@@ -239,39 +247,42 @@ void	main(int argc,char *argv[])
 		exit(1);
 	}
 
-	if (cert_file)
+	if (secure)
 	{
-		if (pem_format)
+		if (cert_file)
 		{
-			if((cert_size = LoadPemFile(PEMFT_CERTIFICATE,cert_filename,cert_buffer,MAX_CERT_SIZE)) == 0)
+			if (pem_format)
 			{
-				printf("Failed to read the certificate file.\n");
+				if((cert_size = LoadPemFile(PEMFT_CERTIFICATE,cert_filename,cert_buffer,MAX_CERT_SIZE)) == 0)
+				{
+					printf("Failed to read the certificate file.\n");
+					exit(1);
+				}
+				if((cert_size = LoadPemFile(PEMFT_RSA_PRIVATE_KEY,key_filename,key_buffer,MAX_KEY_SIZE)) == 0)
+				{
+					printf("Failed to read the key file.\n");
+					exit(1);
+				}
+			}else{
+				/* read the binary file */
+				printf("The code needs to be written to read the binary cert -- I am too lazy.\n");
 				exit(1);
 			}
-			if((cert_size = LoadPemFile(PEMFT_RSA_PRIVATE_KEY,key_filename,key_buffer,MAX_KEY_SIZE)) == 0)
+
+			/* ok, we have read the file successfully */
+			if (!X509_DecodeCertificate(&certificate,cert_buffer))
 			{
-				printf("Failed to read the key file.\n");
+				printf("Failed to decode the certificate.\n");
 				exit(1);
 			}
-		}else{
-			/* read the binary file */
-			printf("The code needs to be written to read the binary cert -- I am too lazy.\n");
-			exit(1);
-		}
 
-		/* ok, we have read the file successfully */
-		if (!X509_DecodeCertificate(&certificate,cert_buffer))
-		{
-			printf("Failed to decode the certificate.\n");
-			exit(1);
-		}
+			if (!RSA_LoadPublicKey(&key,key_buffer))
+			{
+				printf("Failed to decode the private key\n");
+				exit(1);
+			}
 
-		if (!RSA_LoadPublicKey(&key,key_buffer))
-		{
-			printf("Failed to decode the private key\n");
-			exit(1);
 		}
-
 	}
 
 	/* Need to initialise the status code sizes before the 
@@ -283,6 +294,11 @@ void	main(int argc,char *argv[])
 	}
 
 	StartNetworking();
+
+	if (open_ssl)
+	{
+		ctx = InitialiseCTX(key_filename,cert_filename);
+	}
 
 	/* now lets talk to the sockets */
 	s_listen = socket(AF_INET,SOCK_STREAM,0);
@@ -297,7 +313,7 @@ void	main(int argc,char *argv[])
 		sin_listen.sin_family = AF_INET;
 		if (port_number != 0)
 			sin_listen.sin_port = htons(port_number);
-		else if (secure)
+		else if (secure || open_ssl)
 			sin_listen.sin_port   = htons(HTTPS_PORT);
 		else
 			sin_listen.sin_port   = htons(HTTP_PORT);
@@ -317,6 +333,15 @@ void	main(int argc,char *argv[])
 				{
 					printf("Failed to listen to socket\n");
 				}else{
+					fd_set	set;
+
+					FD_ZERO(&set);
+					FD_SET(s_listen,&set);
+
+					printf("before the select\n");
+					printf("%d select result\n",select(s_listen+1,&set,NULL,NULL,NULL));
+					printf("after the select\n");
+
 					s_in = accept(s_listen,(LPSOCKADDR)&sin_in,&not_used);
 
 					if (s_in == INVALID_SOCKET)
@@ -328,12 +353,27 @@ void	main(int argc,char *argv[])
 
 						details[connection_number].connection	= connection_number;
 						details[connection_number].socket 		= s_in;
+						details[connection_number].is_secure	= open_ssl;
 						details[connection_number].in_use		= 1;
 						details[connection_number].user[0]		= 0;
 						details[connection_number].retry_count  = 0;
 						details[connection_number].passwd[0]	= 0;
 
-						if (secure)
+						if (open_ssl)
+						{
+							details[connection_number].ssl_connection = SSLAccept(ctx,s_in);
+
+							if (details[connection_number].ssl_connection != NULL)
+							{
+								thread[connection_number] = CreateThread(	NULL, 
+																			0, 
+																			(LPTHREAD_START_ROUTINE)handle_connection, 
+																			(void*)connection_number, 
+																			0, 
+																			NULL);
+							}
+						}
+						else if (secure)
 							thread[connection_number] = CreateThread(	NULL, 
 																		0, 
 																		(LPTHREAD_START_ROUTINE)handle_tls_connection, 

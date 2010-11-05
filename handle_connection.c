@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <openssl/ssl.h>
 
 #include "headers.h"
 #include "http_server.h"
@@ -88,21 +89,24 @@ void	handle_connection(unsigned int connection)
 
 			switch(command)
 			{
+				/* TODO: handle the request body --- should do nothing really */
+
 				case HTTP_COMMAND_HEAD:
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break;
 
 				case HTTP_COMMAND_GET:		// We have a get command
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break;
 
 				case HTTP_COMMAND_POST: 	// We have post command
+						printf("POST\n");
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break; 
 
@@ -124,7 +128,11 @@ void	handle_connection(unsigned int connection)
 
 int	do_read(unsigned int connection)
 {
-	data_read[connection] = recv(details[connection].socket,connection_buffer[connection],BUFFER_SIZE,0);
+	if (details[connection].is_secure)
+		data_read[connection] = SSL_read(details[connection].ssl_connection,connection_buffer[connection],BUFFER_SIZE);
+	else
+		data_read[connection] = recv(details[connection].socket,connection_buffer[connection],BUFFER_SIZE,0);
+	
 	buff_pos[connection] = 0;
 
 	if (data_read[connection] < 0)
@@ -628,8 +636,12 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 
 	DumpHexMem(send_buffer[connection],total);
 
-	send(details[connection].socket,send_buffer[connection],total,0);
 
+	if (details[connection].is_secure)
+		SSL_write(details[connection].ssl_connection,send_buffer[connection],total);
+	else
+		send(details[connection].socket,send_buffer[connection],total,0);
+	
 	if (status == SC_200_OK)
 	{
 		if (!head_command)
@@ -638,8 +650,11 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 			{
 				do
 				{
-					bytes_written = send(details[connection].socket,send_buffer[connection],bytes_read,0);
-
+					if (details[connection].is_secure)
+						bytes_written = SSL_write(details[connection].ssl_connection,send_buffer[connection],bytes_read);
+					else
+						bytes_written = send(details[connection].socket,send_buffer[connection],bytes_read,0);
+	
 					total += bytes_written;
 				}
 				while(total < bytes_read && bytes_written != -1);
@@ -650,7 +665,10 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 				// pad the send
 				for (digits=total;digits<reported_file_size;digits += sizeof("\n"))
 				{
-					send(details[connection].socket,"\n",sizeof("\n"),0);
+					if (details[connection].is_secure)
+						bytes_written = SSL_write(details[connection].ssl_connection,"\n",sizeof("\n"));
+					else
+						bytes_written = send(details[connection].socket,"\n",sizeof("\n"),0);
 					printf("x");
 				}
 			}
@@ -687,7 +705,10 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 		}
 
 		/* send the special header/body */
-		send(details[connection].socket,send_buffer[connection],total,0);
+		if (details[connection].is_secure)
+			SSL_write(details[connection].ssl_connection,send_buffer[connection],total);
+		else
+			send(details[connection].socket,send_buffer[connection],total,0);
 	}
 }
 
