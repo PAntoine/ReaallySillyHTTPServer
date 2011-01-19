@@ -1,5 +1,9 @@
 ifdef SHEEVA_BUILD
 include sheeva_tools.mak
+
+export CC = mips-linux-gnu-gcc
+export CFLAGS=-EL
+
 endif
 
 HEADER_FILES = $(wildcard *.h)
@@ -10,7 +14,7 @@ BUILD_TARGETS = $(subst src,object,$(OBJECT_FILES))
 
 server: $(OBJECT_FILES)
 	@echo $(OBJECT_FILES)
-	$(CC) -o server $(OBJECT_FILES) -lpthread -lm
+	$(CC) $(CFLAGS) -o server $(OBJECT_FILES) -lpthread -lm
 
 .c.o: $(OBJECT_FILES) $(HEADER_FILES)
 	@$(CC) $(CFLAGS) -c $< -o $(@) -I include $(INCDIRS)

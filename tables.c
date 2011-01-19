@@ -20,6 +20,7 @@ char	*csss[] = {"css",NULL};
 char	*tiffs[] = {"tif",NULL};
 char	*mpegs[] = {"mpg","mpeg",NULL};
 char	*ukwns[] = {"unknown",NULL};
+char	*mp3s[] = {"mp3",NULL};
 
 const	MIME_LOOK_UP	mime_lookup[MT_MAX_TYPES+1] = {	{MT_HTML,	{0,0},			"text/html",	sizeof("text/html")-1,	htmls},
 														{MT_CSS,	{0,0},			"text/css",		sizeof( "text/css")-1,	csss},
@@ -28,6 +29,7 @@ const	MIME_LOOK_UP	mime_lookup[MT_MAX_TYPES+1] = {	{MT_HTML,	{0,0},			"text/html
 														{MT_TIFFM,	{0x4d,0x4d},	"image/tiff",	sizeof("image/tiff")-1,	tiffs},
 														{MT_TIFFI,	{0x49,0x49},	"image/tiff",	sizeof("image/tiff")-1,	tiffs},
 														{MT_MPEG,	{0,0},			"image/mpeg",	sizeof("image/mpeg")-1,	mpegs},
+														{MT_MP3,	{0,0},			"audio/mp3",	sizeof("audio/mp3")-1,	mp3s},
 														/* must be the last one */                            
 														{MT_MAX_TYPES,{0,0},		"text/plain",	sizeof("text/plain")-1,	ukwns}};
 

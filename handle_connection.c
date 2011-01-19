@@ -81,6 +81,8 @@ void	handle_connection(unsigned int connection)
 	// New connection - reset data read.
 	if (do_read(connection) > 0)
 	{
+		DumpHexMem(connection_buffer[connection],data_read[connection]);
+
 		while (command != HTTP_COMMAND_BAD)
 		{
 			// waiting for new connection
@@ -88,21 +90,24 @@ void	handle_connection(unsigned int connection)
 
 			switch(command)
 			{
+				/* TODO: handle the request body --- should do nothing really */
+
 				case HTTP_COMMAND_HEAD:
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break;
 
 				case HTTP_COMMAND_GET:		// We have a get command
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break;
 
 				case HTTP_COMMAND_POST: 	// We have post command
+						printf("POST\n");
 						decode_request_headers(connection);
-						decode_request_body(connection);
+//						decode_request_body(connection);
 						SendResponse(connection,&uri[1],GetMimeType(&uri[1]),0);
 						break; 
 
@@ -604,7 +609,14 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 	total += AddHeader(&send_buffer[connection][total],HST_CONTENT_TYPE,mime_lookup[type].mime_name,mime_lookup[type].length);
 
 	/* add the content length */
-	total += AddHeader(&send_buffer[connection][total],HST_CONTENT_LENGTH,&data_length[9-digits],digits);
+	if (details[connection].media_chunked)
+	{
+		total += AddHeader(&send_buffer[connection][total],HST_TRANSFER_ENCODING,"chunked",sizeof("chunked")-1);
+	}
+	else
+	{
+		total += AddHeader(&send_buffer[connection][total],HST_CONTENT_LENGTH,&data_length[9-digits],digits);
+	}
 	
 	if (status == SC_401_UNAUTHORIZED)
 	{
@@ -628,21 +640,54 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 
 	DumpHexMem(send_buffer[connection],total);
 
-	send(details[connection].socket,send_buffer[connection],total,0);
+	send(details[connection].socket,send_buffer[connection],total,MSG_NOSIGNAL);
 
 	if (status == SC_200_OK)
 	{
+		int failed = 0;
+		char buffer[12];
+
 		if (!head_command)
 		{
-			while ((bytes_read = read(file,send_buffer[connection],2048)) > 0)
+			while (!failed && (bytes_read = read(file,send_buffer[connection],2048)) > 0)
 			{
+				if (details[connection].media_chunked)
+				{
+					printf("size: %d\n",bytes_read);
+					encode_hex(buffer,10,bytes_read);
+					buffer[10] = 0x0d;
+					buffer[11] = 0x0a;
+					send(details[connection].socket,buffer,12,MSG_NOSIGNAL);
+				}
+				
 				do
 				{
-					bytes_written = send(details[connection].socket,send_buffer[connection],bytes_read,0);
-
-					total += bytes_written;
+					bytes_written = send(details[connection].socket,send_buffer[connection],bytes_read,MSG_NOSIGNAL);
+					
+					if (bytes_written == -1)
+						failed = 1;
+					else
+						total += bytes_written;
 				}
-				while(total < bytes_read && bytes_written != -1);
+				while(!failed && total < bytes_read && bytes_written != -1);
+	
+				if (details[connection].media_chunked)
+				{
+					buffer[0] = 0x0d;
+					buffer[1] = 0x0a;
+					send(details[connection].socket,buffer,2,MSG_NOSIGNAL);
+				}
+			}
+
+			if (details[connection].media_chunked)
+			{
+				buffer[0] = '0';
+				buffer[1] = 0x0d;
+				buffer[2] = 0x0a;
+				buffer[3] = 0x0d;
+				buffer[4] = 0x0a;
+				send(details[connection].socket,buffer,5,MSG_NOSIGNAL);
+				DumpHexMem(buffer,3);
 			}
 
 			if (reported_file_size > total)
@@ -650,8 +695,10 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 				// pad the send
 				for (digits=total;digits<reported_file_size;digits += sizeof("\n"))
 				{
-					send(details[connection].socket,"\n",sizeof("\n"),0);
-					printf("x");
+					if (send(details[connection].socket,"\n",sizeof("\n"),MSG_NOSIGNAL) == -1)
+						break;
+					else
+						printf("x");
 				}
 			}
 		}
@@ -687,7 +734,7 @@ void	SendResponse(unsigned int connection,char* uri,MIME_TYPE type, int head_com
 		}
 
 		/* send the special header/body */
-		send(details[connection].socket,send_buffer[connection],total,0);
+		send(details[connection].socket,send_buffer[connection],total,MSG_NOSIGNAL);
 	}
 }
 

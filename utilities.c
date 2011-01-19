@@ -23,6 +23,22 @@ extern	int		data_read[MAX_CONNECTIONS];
 
 
 /*---  FUNCTION  ----------------------------------------------------------------------*
+ *         Name:  encode_hex
+ *  Description:  This function will encode a value as hex.
+ *-------------------------------------------------------------------------------------*/
+void encode_hex ( char* buffer, int buffer_size, unsigned int value )
+{
+	int count = 0;
+	char HexDigits[] = "0123456789ABCDEF";
+
+	for (count=buffer_size; count > 0; count--)
+	{
+		buffer[count-1] = HexDigits[value & 0x0f];
+		value >>= 4;
+	}
+}
+
+/*---  FUNCTION  ----------------------------------------------------------------------*
  *         Name:  GetField
  *  Description:  This function will return a field from a token. The fields are 
  *                delimited by either a CRLF or the delimeter passed in.

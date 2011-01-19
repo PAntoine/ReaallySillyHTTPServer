@@ -253,6 +253,7 @@ typedef	enum
 	MT_TIFFM,
 	MT_TIFFI,
 	MT_MPEG,
+	MT_MP3,
 	MT_MAX_TYPES
 
 } MIME_TYPE;
@@ -416,6 +417,7 @@ typedef struct
 {
 	unsigned int	connection;
 	SOCKET			socket;
+	char			media_chunked;
 	char			in_use;
 	char			is_secure;
 	char			user[32];

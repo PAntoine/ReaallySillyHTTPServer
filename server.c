@@ -122,6 +122,7 @@ void	main(int argc,char *argv[])
 	int			closed = 0;
 	int			secure = 0;
 	int			failed = 0;
+	int			media_chunked = 1;
 	int			not_used;
 	int			key_file = 0;
 	int			cert_file = 0;
@@ -160,7 +161,8 @@ void	main(int argc,char *argv[])
 					case 's': secure = 1; 	break;
 					case 'p': pem_format = 1; break;
 					case 'b': pem_format = 0; break;	/* I know pointless but makes the command line more readable - no unknown magic */
-					
+					case 'm': media_chunked = 1; break;
+
 					case 'a':
 							if (argv[start][2] == '\0')
 							{
@@ -317,6 +319,15 @@ void	main(int argc,char *argv[])
 				{
 					printf("Failed to listen to socket\n");
 				}else{
+					fd_set	set;
+
+					FD_ZERO(&set);
+					FD_SET(s_listen,&set);
+
+					printf("before the select\n");
+					printf("%d select result\n",select(s_listen+1,&set,NULL,NULL,NULL));
+					printf("after the select\n");
+
 					s_in = accept(s_listen,(LPSOCKADDR)&sin_in,&not_used);
 
 					if (s_in == INVALID_SOCKET)
@@ -326,12 +337,13 @@ void	main(int argc,char *argv[])
 						printf("trying to handle a connection\n");
 						memset(&details[connection_number],0,sizeof(CONNECTION_DETAILS));
 
-						details[connection_number].connection	= connection_number;
-						details[connection_number].socket 		= s_in;
-						details[connection_number].in_use		= 1;
-						details[connection_number].user[0]		= 0;
-						details[connection_number].retry_count  = 0;
-						details[connection_number].passwd[0]	= 0;
+						details[connection_number].connection		= connection_number;
+						details[connection_number].socket 			= s_in;
+						details[connection_number].media_chunked	= media_chunked;
+						details[connection_number].in_use			= 1;
+						details[connection_number].user[0]			= 0;
+						details[connection_number].retry_count		= 0;
+						details[connection_number].passwd[0]		= 0;
 
 						if (secure)
 							thread[connection_number] = CreateThread(	NULL, 
