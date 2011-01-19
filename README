@@ -36,6 +36,14 @@ problems and common exploits.
 I think I am reasonably good at what I do, but this is a mostly free-time project that is just being coded to help
 me know more. 
 
+Ahhh..... The above is all lies. :) There is a partially implimented TLS stack. All the messages are handled but 
+the above is wishful thinking that I would have written the maths functions to go with it. They are half written
+somewhere on one of my harddrives at home but I don't imagine that they will ever be finished. So if you just
+want to understand the message flow for TLS read the code, try it and it will fail on the last step as it needs
+the message to use the shared key that has not been created. This would need the maths functions to do this.
+I did not see the point in using a third-party library, added nothing to the knowledge gain (might as well use
+OpenSSL for everything).
+
 If anyone spots any security flaws in the program, please let me know.
 
 Building
@@ -55,5 +63,8 @@ Done!
 Using it
 --------
 
+Don't :)
 
+Though I do find it useful in situations where an unreliable (and unsafe) webserver is required for the short term.
+Getting PDFs to be able to read on the IPad is favorite (yes, the IPad is s**t!).
 
